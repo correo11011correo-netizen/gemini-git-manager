@@ -41,3 +41,12 @@ Muestra información de la cuenta asociada al Token activo y el estado de límit
 ```bash
 git info
 ```
+
+### Comandos Locales (Nuevos)
+Gemini-Git ahora actúa como un "wrapper" inteligente. Si los siguientes comandos estándar son invocados, intentará usar el binario `git` real del sistema para gestionar repositorios locales, manteniendo intacta su capacidad de comunicación nativa con la API de GitHub:
+- `git init` - Inicializa un repositorio local.
+- `git add` - Añade archivos al índice.
+- `git commit` - Registra cambios en el repositorio.
+- `git status` - Muestra el estado del árbol de trabajo.
+- `git log` - Muestra el historial de commits.
+- `git config` - Obtiene y establece opciones del repositorio o globales.

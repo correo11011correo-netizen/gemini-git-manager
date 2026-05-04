@@ -9,6 +9,7 @@ import time
 import hashlib
 import tarfile
 import shutil
+import subprocess
 
 BASE_DIR = os.path.expanduser("~/.gemini-git")
 ENV_FILE = os.path.join(BASE_DIR, ".env")
@@ -89,6 +90,25 @@ def download_file(url, token, target_path):
                     f.write(buf)
             return True
     except: return False
+
+def run_system_git(args_list):
+    # Try to find the real git binary
+    real_git = None
+    for path in os.environ["PATH"].split(os.pathsep):
+        candidate = os.path.join(path, "git")
+        if os.path.exists(candidate) and not candidate.startswith("/home/userland/bin"):
+            real_git = candidate
+            break
+    if not real_git:
+        print("[!] Real git binary not found on system.")
+        return
+    
+    try:
+        subprocess.run([real_git] + args_list, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[!] Git command failed with exit code {e.returncode}")
+    except Exception as e:
+        print(f"[!] Error running git: {e}")
 
 def cmd_pull(args):
     user, token = get_active_token()
@@ -215,6 +235,13 @@ def save_token(user, token):
 def main():
     global DEBUG_MODE
     init_system()
+    
+    # Bypass for native git commands
+    native_commands = ['init', 'add', 'commit', 'status', 'log', 'config']
+    if len(sys.argv) > 1 and sys.argv[1] in native_commands:
+        run_system_git(sys.argv[1:])
+        return
+
     parser = argparse.ArgumentParser(prog="git")
     parser.add_argument("--debug", action="store_true")
     subparsers = parser.add_subparsers(dest="command")
@@ -233,6 +260,14 @@ def main():
     subparsers.add_parser("info")
     subparsers.add_parser("setup")
     
+    # Local commands documentation
+    subparsers.add_parser("init", help="Initialize a local git repository (Native)")
+    subparsers.add_parser("add", help="Add file contents to the index (Native)")
+    subparsers.add_parser("commit", help="Record changes to the repository (Native)")
+    subparsers.add_parser("status", help="Show the working tree status (Native)")
+    subparsers.add_parser("log", help="Show commit logs (Native)")
+    subparsers.add_parser("config", help="Get and set repository or global options (Native)")
+
     args = parser.parse_args()
     if args.debug: DEBUG_MODE = True
     
@@ -240,6 +275,6 @@ def main():
     elif args.command == "push": cmd_push(args)
     elif args.command == "info": cmd_info(args)
     elif args.command == "setup": setup_token()
-    else: parser.print_help()
+    elif args.command not in native_commands: parser.print_help()
 
 if __name__ == "__main__": main()
